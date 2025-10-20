@@ -8,8 +8,8 @@ from app.core.security import decode_access_token
 from app.modules.users.service import UserService
 from app.modules.users.schemas import UserCreate, UserUpdate, UserResponse, UserLogin, Token
 
-router = APIRouter(prefix="/users", tags=["Users"])
-auth_router = APIRouter(prefix="/auth", tags=["Authentication"])
+router = APIRouter(prefix="/users", tags=["Usuarios"])
+auth_router = APIRouter(prefix="/auth", tags=["Autenticación"])
 security = HTTPBearer()
 
 def get_current_user(
@@ -21,14 +21,14 @@ def get_current_user(
     if not payload:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Credenciales de autenticacion invalidas"
+            detail="Credenciales de autenticación inválidas"
         )
     
     email = payload.get("sub")
     if not email:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Token invalido"
+            detail="Token inválido"
         )
     
     service = UserService(db)
@@ -45,26 +45,26 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
     try:
         service = UserService(db)
         new_user = service.register_user(user)
-        return success_response(new_user.model_dump(), "Usuario registrado correctamente")
+        return success_response(new_user.model_dump(), "Usuario registrado exitosamente")
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error interno del servidor")
 
 @auth_router.post("/login", response_model=dict)
 def login(login_data: UserLogin, db: Session = Depends(get_db)):
     try:
         service = UserService(db)
         token = service.authenticate_user(login_data)
-        return success_response(token.model_dump(), "Inicio de sesion exitoso")
+        return success_response(token.model_dump(), "Inicio de sesión exitoso")
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error interno del servidor")
 
 @router.get("/me", response_model=dict)
 def get_current_user_info(current_user: UserResponse = Depends(get_current_user)):
-    return success_response(current_user.model_dump(), "Usuario obtenido correctamente")
+    return success_response(current_user.model_dump(), "Usuario obtenido exitosamente")
 
 @router.get("/", response_model=dict)
 def get_all_users(
@@ -76,9 +76,9 @@ def get_all_users(
     try:
         service = UserService(db)
         users = service.get_all_users(skip, limit)
-        return success_response([user.model_dump() for user in users], "Usuarios obtenidos correctamente")
+        return success_response([user.model_dump() for user in users], "Usuarios obtenidos exitosamente")
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error interno del servidor")
 
 @router.get("/{user_id}", response_model=dict)
 def get_user(
@@ -90,7 +90,7 @@ def get_user(
     user = service.get_user_by_id(user_id)
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado")
-    return success_response(user.model_dump(), "Usuario obtenido correctamente")
+    return success_response(user.model_dump(), "Usuario obtenido exitosamente")
 
 @router.put("/{user_id}", response_model=dict)
 def update_user(
@@ -101,14 +101,14 @@ def update_user(
 ):
     try:
         service = UserService(db)
-        updated_user = service.update_user(user_id, user_update)
+        updated_user = service.update_user(user_id, user_update, current_user.id)
         if not updated_user:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado")
-        return success_response(updated_user.model_dump(), "Usuario actualizado correctamente")
+        return success_response(updated_user.model_dump(), "Usuario actualizado exitosamente")
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error interno del servidor")
 
 @router.delete("/{user_id}", response_model=dict)
 def delete_user(
@@ -117,7 +117,7 @@ def delete_user(
     current_user: UserResponse = Depends(get_current_user)
 ):
     service = UserService(db)
-    deleted = service.delete_user(user_id)
+    deleted = service.delete_user(user_id, current_user.id)
     if not deleted:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado")
-    return success_response(None, "Usuario eliminado correctamente")
+    return success_response(None, "Usuario eliminado exitosamente")

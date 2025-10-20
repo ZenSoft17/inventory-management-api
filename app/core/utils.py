@@ -1,7 +1,7 @@
 from typing import Any, Dict
 from datetime import datetime
 
-def success_response(data: Any, message: str = "Success") -> Dict:
+def success_response(data: Any, message: str = "Operación exitosa") -> Dict:
     return {
         "success": True,
         "message": message,
